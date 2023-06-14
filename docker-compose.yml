@@ -3,8 +3,12 @@ version: '3'
 services:
   rabbitmq:
     image: rabbitmq:3-management
+    hostname: rabbitmq
     ports:
       - 8080:15672
+    volumes:
+        - ./docker/rabbitmq/data/:/var/lib/rabbitmq/
+        - ./docker/rabbitmq/log/:/var/log/rabbitmq/
 
   app:
     image: golang
@@ -13,3 +17,6 @@ services:
     working_dir: /app
     depends_on:
       - rabbitmq
+
+volumes:
+  rabbitmq-volume:
