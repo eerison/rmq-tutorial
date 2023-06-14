@@ -2,6 +2,8 @@ package main
 
 import (
   "log"
+  "time"
+  "bytes"
 
   amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -39,17 +41,22 @@ msgs, err := ch.Consume(
 	false,  // no-local
 	false,  // no-wait
 	nil,    // args
-)
-failOnError(err, "Failed to register a consumer")
-
-var forever chan struct{}
-
-go func() {
+  )
+  failOnError(err, "Failed to register a consumer")
+  
+  var forever chan struct{}
+  
+  go func() {
 	for d := range msgs {
-		log.Printf("Received a message: %s", d.Body)
+	  log.Printf("Received a message: %s", d.Body)
+	  dotCount := bytes.Count(d.Body, []byte("."))
+	  t := time.Duration(dotCount)
+	  time.Sleep(t * time.Second)
+	  log.Printf("Done")
+    d.Ack(false)
 	}
-}()
-
-log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-<-forever
+  }()
+  
+  log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+  <-forever
 }

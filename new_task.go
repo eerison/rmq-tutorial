@@ -5,6 +5,8 @@ import (
   "context"
   "log"
   "time"
+  "os"
+  "strings"
 
   amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -13,6 +15,14 @@ func failOnError(err error, msg string) {
 	if err != nil {
 	  log.Panicf("%s: %s", msg, err)
 	}
+}
+
+func bodyFrom(args []string) string {
+    if (len(args) < 2) || os.Args[1] == "" {
+        return "hello"
+    }
+    
+	return strings.Join(args[1:], " ")
 }
 
 func main() {
@@ -35,18 +45,19 @@ q, err := ch.QueueDeclare(
   failOnError(err, "Failed to declare a queue")
   
   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-  defer cancel()
-  
-  body := "Hello World!"
-  err = ch.PublishWithContext(ctx,
-	"",     // exchange
-	q.Name, // routing key
-	false,  // mandatory
-	false,  // immediate
-	amqp.Publishing {
-	  ContentType: "text/plain",
-	  Body:        []byte(body),
-	})
-  failOnError(err, "Failed to publish a message")
-  log.Printf(" [x] Sent %s\n", body)
+defer cancel()
+
+body := bodyFrom(os.Args)
+err = ch.PublishWithContext(ctx,
+  "",           // exchange
+  q.Name,       // routing key
+  false,        // mandatory
+  false,
+  amqp.Publishing {
+    DeliveryMode: amqp.Persistent,
+    ContentType:  "text/plain",
+    Body:         []byte(body),
+  })
+failOnError(err, "Failed to publish a message")
+log.Printf(" [x] Sent %s", body)
 }
